@@ -30,18 +30,27 @@ public class MainActivity extends AppCompatActivity {
     DataAdapter dataAdapter = null;
     final static String SAVED_TEXT = "saved_text";
     SharedPreferences sPref;
+    String get_text;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+           /* Check whether we're recreating a previously destroyed instance
+                if (savedInstanceState != null) {
+           // Restore value of members from saved state
+                get_text = savedInstanceState.getString(SAVED_TEXT);
+           }*/
+
         setContentView(R.layout.activity_main);
+
         new SecondTask(this).execute();
         // find elements ListView
         listView = (ListView) findViewById(R.id.list);
         editText = (EditText) findViewById(R.id.editText);
         button = (Button) findViewById(R.id.button);
 
-        //create context menu
+        // create context menu
         registerForContextMenu(button);
         // create adapter
         dataAdapter = new DataAdapter(this, R.layout.tab, listData);
@@ -52,10 +61,10 @@ public class MainActivity extends AppCompatActivity {
                 button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String get_text = editText.getText().toString();
+                if (get_text == null) get_text = editText.getText().toString();
                 listData.add(get_text);
                 dataAdapter.notifyDataSetChanged();
-                //go to list end
+                // go to list end
                 listView.setSelection(listData.size());
                 ContentValues cv = new ContentValues();
                 // put data
@@ -64,14 +73,19 @@ public class MainActivity extends AppCompatActivity {
                 editText.setText("");
             }
         });
-    }
-        @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        // close BD
-        dbHelper.close();
-        }
 
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v,
+                                    ContextMenu.ContextMenuInfo menuInfo) {
+        // TODO Auto-generated method stub
+        switch (v.getId()) {
+            case R.id.button:
+                menu.add(0, 1, 0, R.string.button_clear);
+                break;
+        }
+    }
     void saveText() {
         sPref = getPreferences(MODE_PRIVATE);
         SharedPreferences.Editor ed = sPref.edit();
@@ -85,24 +99,19 @@ public class MainActivity extends AppCompatActivity {
         String savedText = sPref.getString(SAVED_TEXT, "");
         editText.setText(savedText);
         Toast.makeText(this, "Text loaded", Toast.LENGTH_SHORT).show();
-
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // close BD
+        dbHelper.close();
+        }
 
     @Override
     protected void onStop() {
         super.onStop();
-        saveText();
-    }
-
-    @Override
-    public void onCreateContextMenu(ContextMenu menu, View v,
-                                    ContextMenu.ContextMenuInfo menuInfo) {
-        // TODO Auto-generated method stub
-        switch (v.getId()) {
-            case R.id.button:
-                menu.add(0, 1, 0, R.string.button_clear);
-                break;
-        }
+       saveText();
     }
 
     @Override
@@ -118,6 +127,12 @@ public class MainActivity extends AppCompatActivity {
         return super.onContextItemSelected(item);
     }
 
+    // Save fields before turning the screen
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putString(SAVED_TEXT,editText.getText().toString());
+        super.onSaveInstanceState(outState);
+    }
 
     @SuppressLint("StaticFieldLeak")
     class SecondTask extends AsyncTask<Void, Integer, Void> {
@@ -145,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
                     if ((c.getString(nameColIndex)) != null) {
                         listData.add(c.getString(nameColIndex));
                     }
-                    // jump on nexy rows
+                    // jump on next rows
                     // and if next rows not - false - end cycle
                 } while (c.moveToNext());
                 c.close();
